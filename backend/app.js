@@ -21,9 +21,11 @@ const PORT = process.env.PORT || 3000;
 connectDB();
 
 app.use(cors({
-    origin: "https://fishtacobidun.github.io",
-    credentials: true
-}));
+    origin: 'https://fishtacobidun.github.io', //whatever your frontend port is
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
