@@ -1,0 +1,678 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 100vh;
+    width: 100%;
+    max-width: 100%;
+    position: relative;
+}
+
+/* Background Animation */
+.background-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 200%;
+    z-index: 0;
+    animation: scrollBackground 4s linear infinite;
+}
+
+.background-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    background-image: url('images/pookieverse_background.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: 0 0;
+}
+
+.background-container:nth-child(2) {
+    top: 50%;
+}
+
+@keyframes scrollBackground {
+    0% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(-50%);
+    }
+}
+
+/* Content Container */
+.content-container {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    padding-top: 20px;
+}
+
+.content-container.scrapbook-mode {
+    justify-content: flex-start;
+}
+
+/* Logo Styles */
+.logo-container {
+    position: relative;
+    margin-bottom: 20px;
+    transform: translateY(-130%);
+    transition: transform 1s ease-out;
+}
+
+.logo-container.logo-animate {
+    transform: translateY(0);
+}
+
+.scrapbook-container .logo-container {
+    margin-bottom: 40px;
+}
+
+.logo {
+    width: 900px;
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Sign In Container */
+.sign-in-container {
+    opacity: 0;
+    transition: opacity 0.8s ease-in;
+}
+
+.sign-in-container.sign-in-visible {
+    opacity: 1;
+}
+
+.sign-in-container.sign-in-hidden {
+    opacity: 0;
+    display: none;
+}
+
+.sign-in-box {
+    background-color: #dc0da4;
+    border: 4px solid #e77808;
+    border-radius: 15px;
+    padding: 40px 50px;
+    width: 600px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.sign-in-title {
+    font-family: "Shrikhand", serif;
+    font-weight: 400;
+    font-style: normal;
+    font-size: 70px;
+    color: white;
+    text-align: center;
+    margin-bottom: 30px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.input-group {
+    margin-bottom: 25px;
+}
+
+.input-label {
+    font-family: "Shrikhand", serif;
+    font-weight: 400;
+    font-style: normal;
+    font-size: 40px;
+    color: white;
+    display: block;
+    margin-bottom: 4px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.sign-in-input {
+    width: 100%;
+    padding: 12px 15px;
+    font-family: "Reenie Beanie", cursive;
+    font-weight: 400;
+    font-style: normal;
+    font-size: 40px;
+    border: 3px solid #e77808;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.95);
+    color: #333;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.sign-in-input:focus {
+    outline: none;
+    border-color: #ffaa44;
+    box-shadow: 0 0 10px rgba(255, 136, 0, 0.5);
+}
+
+.sign-in-input::placeholder {
+    color: #333;
+    font-family: "Reenie Beanie", cursive;
+}
+
+/* Date input styling */
+input[type="date"] {
+    font-family: "Reenie Beanie", cursive;
+    font-size: 40px;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+
+/* Enter Button */
+.enter-button {
+    width: 100%;
+    padding: 15px 30px;
+    background-color: #dc0da4;
+    border: 4px solid #e77808;
+    border-radius: 12px;
+    color: white;
+    font-family: "Shrikhand", serif;
+    font-weight: 400;
+    font-style: normal;
+    font-size: 32px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    margin-top: 10px;
+}
+
+.enter-button:hover {
+    transform: scale(1.05);
+    background-color: #ff33ff;
+    border-color: #ffaa44;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.enter-button:active {
+    transform: scale(1.02);
+}
+
+/* Error Message */
+.error-message {
+    color: #ff3333;
+    font-family: "Shrikhand", serif;
+    font-size: 24px;
+    text-align: center;
+    margin-top: 15px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    display: none;
+}
+
+.error-message.show {
+    display: block;
+}
+
+/* Scrapbook Container */
+.scrapbook-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.8s ease-in;
+}
+
+.scrapbook-container.scrapbook-visible {
+    opacity: 1;
+}
+
+.scrapbook-container.scrapbook-hidden {
+    opacity: 0;
+}
+
+/* Navigation Buttons */
+.nav-button {
+    position: fixed;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: #dc0da4;
+    border: 6px solid #e77808;
+    color: white;
+    font-size: 40px;
+    cursor: pointer;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.nav-button:hover {
+    transform: scale(1.1);
+    background-color: #ff33ff;
+    border-color: #ffaa44;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.nav-button:active {
+    transform: scale(1.05);
+}
+
+.nav-button-left {
+    top: 20px;
+    left: 20px;
+}
+
+.nav-button-right {
+    top: 20px;
+    right: 20px;
+}
+
+.nav-icon {
+    font-family: "Shrikhand", serif;
+    line-height: 1;
+}
+
+/* Scrapbook Entries */
+.scrapbook-entries {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    margin-bottom: 100px;
+}
+
+.no-entries {
+    font-family: "Shrikhand", serif;
+    font-size: 60px;
+    color: white;
+    text-align: center;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    margin-top: 100px;
+}
+
+/* Scrapbook Entry Card */
+.scrapbook-entry {
+    background-color: #dc0da4;
+    border: 8px solid #e77808;
+    border-radius: 15px;
+    padding: 30px 40px;
+    width: 100%;
+    max-width: 1000px;
+    position: relative;
+}
+
+.entry-edit-btn {
+    position: absolute;
+    top: 15px;
+    right: 90px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.2);
+    border: 5px solid #e77808;
+    color: white;
+    font-size: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    font-family: "Shrikhand", serif;
+}
+
+.entry-edit-btn:hover {
+    background-color: rgba(255, 255, 255, 0.4);
+    border-color: #ffaa44;
+    transform: scale(1.1);
+}
+
+.entry-delete-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.2);
+    border: 5px solid #e77808;
+    color: white;
+    font-size: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    font-family: "Shrikhand", serif;
+}
+
+.entry-delete-btn:hover {
+    background-color: rgba(255, 0, 0, 0.3);
+    border-color: #ff3333;
+    transform: scale(1.1);
+}
+
+.entry-title {
+    font-family: "Shrikhand", serif;
+    font-size: 60px;
+    color: white;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.entry-date {
+    font-family: "Shrikhand", serif;
+    font-size: 42px;
+    color: white;
+    margin-bottom: 20px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.entry-image {
+    width: 100%;
+    object-fit: contain;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    border: 6px solid #e77808;
+}
+
+.entry-description {
+    font-family: "Reenie Beanie", cursive;
+    font-size: 42px;
+    color: white;
+    line-height: 1.4;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Add Entry Overlay */
+.add-entry-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.add-entry-overlay.visible {
+    opacity: 1;
+}
+
+.add-entry-form-container {
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.add-entry-box {
+    background-color: #dc0da4;
+    border: 6px solid #e77808;
+    border-radius: 15px 0 0 15px;
+    border-right: none;
+    padding: 40px 50px;
+    width: 100%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    position: relative;
+}
+
+.close-entry-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.2);
+    border: 5px solid #e77808;
+    color: white;
+    font-size: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    font-family: "Shrikhand", serif;
+}
+
+.close-entry-btn:hover {
+    background-color: rgba(255, 0, 0, 0.3);
+    border-color: #ff3333;
+    transform: scale(1.1);
+}
+
+.add-entry-title {
+    font-family: "Shrikhand", serif;
+    font-weight: 400;
+    font-style: normal;
+    font-size: 50px;
+    color: white;
+    text-align: center;
+    margin-bottom: 30px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.textarea-input {
+    resize: vertical;
+    min-height: 120px;
+    font-family: "Reenie Beanie", cursive;
+    font-size: 32px;
+}
+
+/* Add entry form: file input (no text box, on form background) */
+.file-input-plain {
+    width: auto;
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: white;
+    font-family: "Reenie Beanie", cursive;
+    font-size: 32px;
+    box-shadow: none;
+}
+
+.file-input-plain:focus {
+    outline: none;
+    border: none;
+    box-shadow: none;
+}
+
+.file-input-plain::-webkit-file-upload-button {
+    padding: 8px 16px;
+    margin-right: 12px;
+    border: 3px solid #e77808;
+    border-radius: 8px;
+    background-color:#dc0da4;
+    color: rgba(255, 255, 255, 0.95) ;
+    font-family: "Shrikhand", serif;
+    font-size: 24px;
+    cursor: pointer;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.file-input-plain::-webkit-file-upload-button:hover {
+    border-color: #ffaa44;
+    background-color: white;
+}
+
+.file-input-plain::file-selector-button {
+    padding: 8px 16px;
+    margin-right: 12px;
+    border: 3px solid #e77808;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.95);
+    color: #333;
+    font-family: "Shrikhand", serif;
+    font-size: 24px;
+    cursor: pointer;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.file-input-plain::file-selector-button:hover {
+    border-color: #ffaa44;
+    background-color: white;
+}
+
+/* Add entry form: image preview (90% form width with side padding) */
+.image-preview-container {
+    display: none;
+    margin-top: 16px;
+    width: 100%;
+}
+
+.image-preview-container.visible {
+    display: block;
+}
+
+.image-preview-img {
+    width: 100%;
+    height: auto;
+    max-height: 70vh;
+    object-fit: contain;
+}
+
+/* Loading Screen */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.loading-overlay.visible {
+    opacity: 1;
+}
+
+.loading-box {
+    background-color: #dc0da4;
+    border: 4px solid #e77808;
+    border-radius: 15px;
+    padding: 40px 50px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.loading-message {
+    font-family: "Shrikhand", serif;
+    font-size: 32px;
+    color: white;
+    text-align: center;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Custom Confirmation Modal */
+.confirm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.confirm-overlay.visible {
+    opacity: 1;
+}
+
+.confirm-modal {
+    background-color: #dc0da4;
+    border: 4px solid #e77808;
+    border-radius: 15px;
+    padding: 40px 50px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.confirm-message {
+    font-family: "Shrikhand", serif;
+    font-size: 32px;
+    color: white;
+    text-align: center;
+    margin-bottom: 30px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    line-height: 1.4;
+}
+
+.confirm-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+}
+
+.confirm-btn {
+    padding: 15px 40px;
+    background-color: #dc0da4;
+    border: 4px solid #e77808;
+    border-radius: 12px;
+    color: white;
+    font-family: "Shrikhand", serif;
+    font-weight: 400;
+    font-style: normal;
+    font-size: 28px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.confirm-btn:hover {
+    transform: scale(1.05);
+    background-color: #ff33ff;
+    border-color: #ffaa44;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.confirm-btn:active {
+    transform: scale(1.02);
+}
