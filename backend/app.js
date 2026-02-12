@@ -20,15 +20,37 @@ const PORT = process.env.PORT || 3000;
 // Connect to MongoDB
 connectDB();
 
+// Trust proxy - IMPORTANT for Render/production HTTPS
+app.set('trust proxy', 1);
+
+// Middleware - order matters!
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// Add middleware to log response headers for debugging
+app.use((req, res, next) => {
+  const originalSend = res.send;
+  res.send = function(data) {
+    if (req.path.includes('/api/auth/signin') || req.path.includes('/api/auth/signout')) {
+      console.log(`[RESPONSE] ${req.method} ${req.path} - Headers:`, {
+        'Set-Cookie': res.get('Set-Cookie'),
+        'Access-Control-Allow-Origin': res.get('Access-Control-Allow-Origin'),
+        'Access-Control-Allow-Credentials': res.get('Access-Control-Allow-Credentials')
+      });
+    }
+    return originalSend.call(this, data);
+  };
+  next();
+});
+
+// CORS configuration - must be AFTER cookie parser
 app.use(cors({
-    origin: 'https://fishtacobidun.github.io', //whatever your frontend port is
+    origin: 'https://fishtacobidun.github.io',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
   }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
 
 // Configure Cloudinary
 cloudinary.config({
@@ -63,18 +85,21 @@ const getMongoUri = () => {
 };
 
 app.use(session({
-    secret: process.env.SESSION_SECRET,
+    name: 'connect.sid',
+    secret: process.env.SESSION_SECRET || 'pookieverse-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
         mongoUrl: getMongoUri(),
+        dbName: 'pookieverse_sessions',
         ttl: 7 * 24 * 60 * 60 // 7 days in seconds
     }),
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production (HTTPS)
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+        secure: process.env.NODE_ENV === 'production', // true in production with HTTPS
         httpOnly: true,
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' required for cross-origin in production
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for cross-site in production
+        path: '/'
     }
 }));
 
@@ -82,6 +107,9 @@ app.use(session({
 app.post('/api/auth/signin', async (req, res) => {
     try {
         const { name, birthday } = req.body;
+
+        console.log(`[SIGNIN] Attempt from origin: ${req.get('origin')}`);
+        console.log(`[SIGNIN] Cookies received: ${JSON.stringify(req.cookies)}`);
 
         if (!name || !birthday) {
             return res.status(400).json({
@@ -120,6 +148,13 @@ app.post('/api/auth/signin', async (req, res) => {
         // Create session
         req.session.userId = user._id.toString();
         req.session.userName = user.name;
+        
+        console.log(`[SIGNIN] Session created - ID: ${req.sessionID}, userId: ${req.session.userId}`);
+        console.log(`[SIGNIN] Cookie will be set with:`, {
+            secure: req.session.cookie.secure,
+            sameSite: req.session.cookie.sameSite,
+            httpOnly: req.session.cookie.httpOnly
+        });
         
         res.json({
             success: true,
