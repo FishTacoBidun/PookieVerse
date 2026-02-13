@@ -380,6 +380,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     font-family: "Shrikhand", serif;
     font-size: 60px;
     color: white;
+    margin-top: 34px;
     margin-bottom: 10px;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
@@ -675,4 +676,5 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 .confirm-btn:active {
     transform: scale(1.02);
+
 }
