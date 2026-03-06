@@ -194,6 +194,11 @@ function ensureMusicPlaying() {
 function customConfirm(message) {
     return new Promise((resolve) => {
         confirmMessage.textContent = message;
+        
+        // Prevent background scrolling
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        
         confirmOverlay.style.display = 'flex';
         setTimeout(() => {
             confirmOverlay.classList.add('visible');
@@ -215,6 +220,8 @@ function customConfirm(message) {
             confirmOverlay.classList.remove('visible');
             setTimeout(() => {
                 confirmOverlay.style.display = 'none';
+                // Restore previous overflow state
+                document.body.style.overflow = previousOverflow;
             }, 300);
             confirmYesBtn.removeEventListener('click', handleYes);
             confirmNoBtn.removeEventListener('click', handleNo);
@@ -227,6 +234,7 @@ function customConfirm(message) {
 
 // Loading screen functions
 function showLoadingScreen() {
+    document.body.style.overflow = 'hidden';
     loadingOverlay.style.display = 'flex';
     setTimeout(() => {
         loadingOverlay.classList.add('visible');
@@ -237,6 +245,7 @@ function hideLoadingScreen() {
     loadingOverlay.classList.remove('visible');
     setTimeout(() => {
         loadingOverlay.style.display = 'none';
+        document.body.style.overflow = 'auto';
     }, 300);
 }
 
@@ -253,6 +262,90 @@ async function testBackendConnection() {
         console.error('Backend connection failed:', error);
         console.error('Make sure the backend server is running');
         return false;
+    }
+}
+
+// Check if device is mobile
+function isMobileDevice() {
+    return window.innerWidth <= 800 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+// Format date input for mobile (MM/DD/YYYY with automatic slashes)
+function formatDateInput(input) {
+    input.addEventListener('input', (e) => {
+        let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+        
+        if (value.length >= 2) {
+            value = value.substring(0, 2) + '/' + value.substring(2);
+        }
+        if (value.length >= 5) {
+            value = value.substring(0, 5) + '/' + value.substring(5);
+        }
+        if (value.length > 10) {
+            value = value.substring(0, 10);
+        }
+        
+        e.target.value = value;
+    });
+    
+    // Add placeholder
+    input.placeholder = 'MM/DD/YYYY';
+    input.maxLength = 10;
+}
+
+// Convert mobile date format (MM/DD/YYYY) to ISO format (YYYY-MM-DD)
+function mobileToISODate(dateString) {
+    if (!dateString || dateString.length !== 10) return null;
+    
+    const parts = dateString.split('/');
+    if (parts.length !== 3) return null;
+    
+    const month = parts[0].padStart(2, '0');
+    const day = parts[1].padStart(2, '0');
+    const year = parts[2];
+    
+    // Validate
+    if (month < 1 || month > 12 || day < 1 || day > 31 || year.length !== 4) {
+        return null;
+    }
+    
+    return `${year}-${month}-${day}`;
+}
+
+// Convert ISO date format (YYYY-MM-DD) to mobile format (MM/DD/YYYY)
+function isoToMobileDate(isoDate) {
+    if (!isoDate) return '';
+    
+    const date = new Date(isoDate);
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const year = date.getUTCFullYear();
+    
+    return `${month}/${day}/${year}`;
+}
+
+// Setup mobile date inputs
+function setupMobileDateInputs() {
+    if (!isMobileDevice()) return;
+    
+    console.log('[MOBILE] Setting up mobile date inputs');
+    
+    // Convert birthday input to text on mobile
+    const birthdayInput = document.getElementById('birthday');
+    if (birthdayInput) {
+        birthdayInput.type = 'text';
+        birthdayInput.inputMode = 'numeric';
+        birthdayInput.classList.add('date-input-mobile');
+        formatDateInput(birthdayInput);
+    }
+    
+    // Convert entry date input to text on mobile
+    const entryDateInput = document.getElementById('entryDate');
+    if (entryDateInput) {
+        entryDateInput.type = 'text';
+        entryDateInput.inputMode = 'numeric';
+        entryDateInput.classList.add('date-input-mobile');
+        formatDateInput(entryDateInput);
     }
 }
 
@@ -289,6 +382,9 @@ window.addEventListener('DOMContentLoaded', function() {
     
     // Initialize audio
     initializeAudio();
+    
+    // Setup mobile date inputs
+    setupMobileDateInputs();
     
     // Test backend connection
     testBackendConnection();
@@ -348,11 +444,22 @@ signInForm.addEventListener('submit', async (e) => {
     playClickSound();
     
     const name = document.getElementById('firstName').value.trim();
-    const birthday = document.getElementById('birthday').value;
+    let birthday = document.getElementById('birthday').value;
     
     if (!name || !birthday) {
         showError(signInError, 'Please fill in all fields');
         return false;
+    }
+
+    // Convert mobile date format to ISO format if needed
+    if (isMobileDevice() && birthday.includes('/')) {
+        const isoDate = mobileToISODate(birthday);
+        if (!isoDate) {
+            showError(signInError, 'Invalid date format. Use MM/DD/YYYY');
+            return false;
+        }
+        birthday = isoDate;
+        console.log('[SIGNIN] Converted mobile date to ISO:', birthday);
     }
 
     // Show loading screen before making the request
@@ -638,7 +745,7 @@ async function deleteEntry(entryId) {
 // Show add entry form
 addEntryBtn.addEventListener('click', () => {
     playClickSound();
-    
+
     formMode = 'add';
     editingEntryId = null;
     document.querySelector('.add-entry-title').textContent = 'Add Scrapbook Entry';
@@ -647,7 +754,10 @@ addEntryBtn.addEventListener('click', () => {
     // Make image field required for add mode
     document.getElementById('entryImage').required = true;
     hideError(addEntryError);
-    
+
+    // Prevent background scrolling
+    document.body.style.overflow = 'hidden';
+
     addEntryOverlay.style.display = 'flex';
     setTimeout(() => {
         addEntryOverlay.classList.add('visible');
@@ -683,12 +793,18 @@ async function editEntry(entryId) {
         // Populate form fields
         document.getElementById('entryTitle').value = entry.title;
         
-        // Format date for input (YYYY-MM-DD)
+        // Format date for input
         const entryDate = new Date(entry.date);
         const year = entryDate.getUTCFullYear();
         const month = String(entryDate.getUTCMonth() + 1).padStart(2, '0');
         const day = String(entryDate.getUTCDate()).padStart(2, '0');
-        document.getElementById('entryDate').value = `${year}-${month}-${day}`;
+        
+        // Use mobile format (MM/DD/YYYY) on mobile, ISO format (YYYY-MM-DD) on desktop
+        if (isMobileDevice()) {
+            document.getElementById('entryDate').value = `${month}/${day}/${year}`;
+        } else {
+            document.getElementById('entryDate').value = `${year}-${month}-${day}`;
+        }
         
         document.getElementById('entryDescription').value = entry.description;
         
@@ -702,6 +818,9 @@ async function editEntry(entryId) {
         document.getElementById('entryImage').required = false;
         
         hideError(addEntryError);
+        
+        // Prevent background scrolling
+        document.body.style.overflow = 'hidden';
         
         // Show the form
         addEntryOverlay.style.display = 'flex';
@@ -730,6 +849,10 @@ closeEntryFormBtn.addEventListener('click', async () => {
 
 function closeAddEntryForm() {
     addEntryOverlay.classList.remove('visible');
+    
+    // Restore background scrolling
+    document.body.style.overflow = 'auto';
+    
     setTimeout(() => {
         addEntryOverlay.style.display = 'none';
         addEntryForm.reset();
@@ -801,7 +924,7 @@ if (addEntryForm) {
                 }
 
                 const title = titleInput.value ? titleInput.value.trim() : '';
-                const date = dateInput.value || '';
+                let date = dateInput.value || '';
                 const imageFile = imageInput.files ? imageInput.files[0] : null;
                 const description = descriptionInput.value ? descriptionInput.value.trim() : '';
 
@@ -809,6 +932,17 @@ if (addEntryForm) {
                 if (!title || !date || !description) {
                     showError(addEntryError, 'Please fill in all fields');
                     return;
+                }
+
+                // Convert mobile date format to ISO format if needed
+                if (isMobileDevice() && date.includes('/')) {
+                    const isoDate = mobileToISODate(date);
+                    if (!isoDate) {
+                        showError(addEntryError, 'Invalid date format. Use MM/DD/YYYY');
+                        return;
+                    }
+                    date = isoDate;
+                    console.log('[FORM] Converted mobile date to ISO:', date);
                 }
 
                 // In add mode, image is required. In edit mode, it's optional (keeps existing if not changed)
@@ -924,5 +1058,28 @@ window.addEventListener('error', (event) => {
 window.addEventListener('unhandledrejection', (event) => {
     console.error('Unhandled promise rejection:', event.reason);
     event.preventDefault();
+});
+
+// Prevent clicking through overlays to background
+addEntryOverlay.addEventListener('click', (e) => {
+    // Only close if clicking directly on the overlay (not the form inside)
+    if (e.target === addEntryOverlay) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+});
+
+confirmOverlay.addEventListener('click', (e) => {
+    // Prevent clicking through confirmation overlay
+    if (e.target === confirmOverlay) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+});
+
+loadingOverlay.addEventListener('click', (e) => {
+    // Prevent clicking through loading overlay
+    e.preventDefault();
+    e.stopPropagation();
 });
 

@@ -28,38 +28,63 @@ body {
     top: 0;
     left: 0;
     width: 100%;
-    height: 300%;
+    height: 100%;
     z-index: 0;
-    animation: scrollBackground 6s linear infinite;
     background-color: #dc0da4;
+    overflow: hidden;
 }
 
 .background-container {
     position: absolute;
-    top: 0;
     left: 0;
     width: 100%;
-    height: 33.333333%;
+    height: 100vh;
     background-image: url('images/pookieverse_background.png');
-    background-size: 100% 100%;
+    background-size: cover;
     background-repeat: no-repeat;
-    background-position: 0 0;
+    background-position: center top;
+    will-change: transform;
+}
+
+.background-container:nth-child(1) {
+    top: 0;
+    animation: scrollBackground1 4s linear infinite;
 }
 
 .background-container:nth-child(2) {
-    top: 33.333333%;
+    top: -100vh;
+    animation: scrollBackground2 4s linear infinite;
 }
 
 .background-container:nth-child(3) {
-    top: 66.666666%;
+    top: -200vh;
+    animation: scrollBackground3 4s linear infinite;
 }
 
-@keyframes scrollBackground {
+@keyframes scrollBackground1 {
     0% {
         transform: translateY(0);
     }
     100% {
-        transform: translateY(-33.333333%);
+        transform: translateY(300vh);
+    }
+}
+
+@keyframes scrollBackground2 {
+    0% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(300vh);
+    }
+}
+
+@keyframes scrollBackground3 {
+    0% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(300vh);
     }
 }
 
@@ -388,7 +413,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     font-family: "Shrikhand", serif;
     font-size: 60px;
     color: white;
-    margin-top: 34px;
+    margin-top: 28px;
     margin-bottom: 10px;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
@@ -790,9 +815,15 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
         padding: 10px 12px;
     }
 
-    input[type="date"] {
+    input[type="date"],
+    input[type="text"].date-input-mobile {
         font-size: 32px;
         text-align: left;
+    }
+    
+    /* Hide date picker icon on mobile text inputs */
+    input[type="text"].date-input-mobile::-webkit-calendar-picker-indicator {
+        display: none;
     }
 
     .enter-button {
