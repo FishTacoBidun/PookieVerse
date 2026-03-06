@@ -772,7 +772,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
     /* Sign In Box */
     .sign-in-box {
-        width: 90%;
+        width: 100%;
         padding: 25px 25px;
     }
 
@@ -821,12 +821,14 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
         top: auto;
         bottom: calc(15px + env(safe-area-inset-bottom));
         left: calc(15px + env(safe-area-inset-left));
+        margin-left: 10px;
     }
 
     .nav-button-right {
         top: auto;
         bottom: calc(15px + env(safe-area-inset-bottom));
         right: calc(15px + env(safe-area-inset-right));
+        margin-right: 10px;
     }
 
     /* Scrapbook Container */
