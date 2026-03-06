@@ -25,9 +25,78 @@ const confirmNoBtn = document.getElementById('confirmNoBtn');
 // Loading Screen Elements
 const loadingOverlay = document.getElementById('loadingOverlay');
 
+// Debug Console Elements
+const debugConsole = document.getElementById('debugConsole');
+const debugContent = document.getElementById('debugContent');
+const debugCloseBtn = document.getElementById('debugCloseBtn');
+
 // Track whether we're in "add" or "edit" mode
 let formMode = 'add';
 let editingEntryId = null;
+
+// Debug Console Functionality
+let debugEnabled = false;
+let logoTapCount = 0;
+let logoTapTimeout = null;
+
+// Override console methods to capture logs
+const originalConsoleLog = console.log;
+const originalConsoleError = console.error;
+const originalConsoleWarn = console.warn;
+
+function addDebugLog(message, type = 'log') {
+    if (!debugEnabled) return;
+    
+    const logDiv = document.createElement('div');
+    logDiv.className = `debug-log ${type}`;
+    logDiv.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+    debugContent.appendChild(logDiv);
+    debugContent.scrollTop = debugContent.scrollHeight;
+    
+    // Limit to last 100 logs
+    while (debugContent.children.length > 100) {
+        debugContent.removeChild(debugContent.firstChild);
+    }
+}
+
+console.log = function(...args) {
+    originalConsoleLog.apply(console, args);
+    addDebugLog(args.join(' '), 'log');
+};
+
+console.error = function(...args) {
+    originalConsoleError.apply(console, args);
+    addDebugLog(args.join(' '), 'error');
+};
+
+console.warn = function(...args) {
+    originalConsoleWarn.apply(console, args);
+    addDebugLog(args.join(' '), 'warn');
+};
+
+// Enable debug console by tapping logo 5 times
+logoContainer.addEventListener('click', () => {
+    logoTapCount++;
+    
+    if (logoTapTimeout) {
+        clearTimeout(logoTapTimeout);
+    }
+    
+    if (logoTapCount >= 5) {
+        debugEnabled = true;
+        debugConsole.style.display = 'block';
+        addDebugLog('Debug console enabled', 'info');
+        logoTapCount = 0;
+    } else {
+        logoTapTimeout = setTimeout(() => {
+            logoTapCount = 0;
+        }, 1000);
+    }
+});
+
+debugCloseBtn.addEventListener('click', () => {
+    debugConsole.style.display = 'none';
+});
 
 // Volume control 1 - 10
 const MUSIC_VOLUME = 4;
@@ -148,13 +217,47 @@ async function testBackendConnection() {
     }
 }
 
+// Check if cookies are enabled
+function checkCookieSupport() {
+    try {
+        document.cookie = 'cookietest=1; SameSite=None; Secure';
+        const cookiesEnabled = document.cookie.indexOf('cookietest=') !== -1;
+        document.cookie = 'cookietest=1; expires=Thu, 01-Jan-1970 00:00:01 GMT; SameSite=None; Secure';
+        
+        console.log('[COOKIE CHECK] Cookies enabled:', cookiesEnabled);
+        console.log('[COOKIE CHECK] Current cookies:', document.cookie);
+        console.log('[COOKIE CHECK] User Agent:', navigator.userAgent);
+        
+        if (!cookiesEnabled) {
+            console.warn('[COOKIE CHECK] Cookies appear to be disabled or blocked!');
+            setTimeout(() => {
+                showError(signInError, 'Warning: Cookies may be blocked. Enable cookies in browser settings or disable "Prevent Cross-Site Tracking" on Safari.');
+            }, 2000);
+            setTimeout(() => hideError(signInError), 8000);
+        }
+        
+        return cookiesEnabled;
+    } catch (e) {
+        console.error('[COOKIE CHECK] Error checking cookie support:', e);
+        return false;
+    }
+}
+
 // Initialize page
 window.addEventListener('DOMContentLoaded', function() {
+    console.log('[INIT] Page loaded, initializing...');
+    console.log('[INIT] API Base URL:', API_BASE_URL);
+    
     // Initialize audio
     initializeAudio();
     
     // Test backend connection
     testBackendConnection();
+    
+    // Check cookie support
+    setTimeout(() => {
+        checkCookieSupport();
+    }, 1500);
     
     // Trigger logo animation
     setTimeout(() => {
@@ -218,6 +321,9 @@ signInForm.addEventListener('submit', async (e) => {
     showLoadingScreen();
 
     try {
+        console.log('[SIGNIN] Starting sign in request...');
+        console.log('[SIGNIN] API URL:', `${API_BASE_URL}/auth/signin`);
+        
         const response = await fetch(`${API_BASE_URL}/auth/signin`, {
             method: 'POST',
             headers: {
@@ -226,6 +332,9 @@ signInForm.addEventListener('submit', async (e) => {
             credentials: 'include',
             body: JSON.stringify({ name, birthday })
         });
+
+        console.log('[SIGNIN] Response received, status:', response.status);
+        console.log('[SIGNIN] Response headers:', response.headers);
 
         // Check if response is ok
         if (!response.ok) {
@@ -238,14 +347,38 @@ signInForm.addEventListener('submit', async (e) => {
             }
             hideLoadingScreen();
             showError(signInError, errorData.message || 'Error signing in. Please try again.');
-            console.error('Sign in response error:', response.status, errorData);
+            console.error('[SIGNIN] Sign in response error:', response.status, errorData);
             return false;
         }
 
         const data = await response.json();
-        console.log('Sign in response:', data);
+        console.log('[SIGNIN] Sign in response data:', data);
 
         if (data.success) {
+            console.log('[SIGNIN] Sign in successful, checking cookie...');
+            
+            // Add a small delay to ensure cookie is set
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Verify we can make authenticated requests
+            try {
+                const testResponse = await fetch(`${API_BASE_URL}/auth/status`, {
+                    credentials: 'include'
+                });
+                const testData = await testResponse.json();
+                console.log('[SIGNIN] Auth status check:', testData);
+                
+                if (!testData.authenticated) {
+                    console.error('[SIGNIN] Cookie not being sent! Browser may be blocking cookies.');
+                    hideLoadingScreen();
+                    showError(signInError, 'Login issue: Cookies are being blocked. Try enabling cookies or use a different browser. (Safari may require "Prevent Cross-Site Tracking" to be disabled)');
+                    return false;
+                }
+            } catch (testError) {
+                console.error('[SIGNIN] Auth status check failed:', testError);
+                // Continue anyway, might work
+            }
+            
             hideLoadingScreen();
             hideError(signInError);
             // Fade out sign-in, then show scrapbook
@@ -261,9 +394,9 @@ signInForm.addEventListener('submit', async (e) => {
             showError(signInError, data.message || 'Invalid credentials');
         }
     } catch (error) {
-        console.error('Sign in error:', error);
+        console.error('[SIGNIN] Sign in error:', error);
         hideLoadingScreen();
-        showError(signInError, `Error signing in: ${error.message}. Make sure the backend server is running on port 3000.`);
+        showError(signInError, `Error: ${error.message}. Check your internet connection or try a different browser.`);
     }
 });
 
