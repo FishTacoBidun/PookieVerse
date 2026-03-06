@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import multer from 'multer';
+import jwt from 'jsonwebtoken';
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import connectDB from './config/db.js';
@@ -145,7 +146,7 @@ app.post('/api/auth/signin', async (req, res) => {
             });
         }
 
-        // Create session
+        // Create session (for desktop browsers with cookies)
         req.session.userId = user._id.toString();
         req.session.userName = user.name;
         
@@ -156,13 +157,26 @@ app.post('/api/auth/signin', async (req, res) => {
             httpOnly: req.session.cookie.httpOnly
         });
         
+        // Generate JWT token (for mobile/browsers blocking cookies)
+        const token = jwt.sign(
+            { 
+                userId: user._id.toString(),
+                userName: user.name
+            },
+            process.env.JWT_SECRET || 'pookieverse-jwt-secret-change-in-production',
+            { expiresIn: '7d' }
+        );
+        
+        console.log(`[SIGNIN] JWT token generated for user ${user._id}`);
+        
         res.json({
             success: true,
             message: 'Sign in successful',
             user: {
                 id: user._id,
                 name: user.name
-            }
+            },
+            token: token
         });
     } catch (error) {
         console.error('Sign in error:', error);
@@ -192,21 +206,45 @@ app.post('/api/auth/signout', (req, res) => {
 
 // Check authentication status
 app.get('/api/auth/status', (req, res) => {
+    // Check session first (desktop with cookies)
     if (req.session && req.session.userId) {
-        res.json({
+        return res.json({
             success: true,
             authenticated: true,
+            authMethod: 'session',
             user: {
                 id: req.session.userId,
                 name: req.session.userName
             }
         });
-    } else {
-        res.json({
-            success: true,
-            authenticated: false
-        });
     }
+    
+    // Check JWT token (mobile without cookies)
+    const authHeader = req.get('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'pookieverse-jwt-secret-change-in-production');
+            return res.json({
+                success: true,
+                authenticated: true,
+                authMethod: 'jwt',
+                user: {
+                    id: decoded.userId,
+                    name: decoded.userName
+                }
+            });
+        } catch (err) {
+            console.error('[AUTH STATUS] Invalid JWT:', err.message);
+        }
+    }
+    
+    // Not authenticated
+    res.json({
+        success: true,
+        authenticated: false
+    });
 });
 
 

@@ -34,6 +34,45 @@ const debugCloseBtn = document.getElementById('debugCloseBtn');
 let formMode = 'add';
 let editingEntryId = null;
 
+// Authentication token storage
+let authToken = localStorage.getItem('authToken') || null;
+
+// Helper function to get auth headers
+function getAuthHeaders() {
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    
+    // If we have a token, use it (for mobile/browsers blocking cookies)
+    if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+        console.log('[AUTH] Using JWT token for authentication');
+    } else {
+        console.log('[AUTH] Using session cookie for authentication');
+    }
+    
+    return headers;
+}
+
+// Helper function to make authenticated fetch requests
+async function authenticatedFetch(url, options = {}) {
+    // Always include credentials for session-based auth (works on desktop)
+    options.credentials = 'include';
+    
+    // Add Authorization header if we have a token (works on mobile)
+    if (authToken) {
+        options.headers = {
+            ...options.headers,
+            'Authorization': `Bearer ${authToken}`
+        };
+        console.log('[FETCH] Using JWT authentication for:', url);
+    } else {
+        console.log('[FETCH] Using session cookie authentication for:', url);
+    }
+    
+    return fetch(url, options);
+}
+
 // Debug Console Functionality
 let debugEnabled = false;
 let logoTapCount = 0;
@@ -276,9 +315,7 @@ window.addEventListener('DOMContentLoaded', function() {
 // Check authentication status on page load
 async function checkAuthStatus() {
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/status`, {
-            credentials: 'include'
-        });
+        const response = await authenticatedFetch(`${API_BASE_URL}/auth/status`);
         
         if (!response.ok) {
             console.log('Auth status check failed:', response.status);
@@ -287,6 +324,7 @@ async function checkAuthStatus() {
         
         const data = await response.json();
         console.log('Auth status check result:', data);
+        console.log('Auth method:', data.authMethod || 'none');
         
         if (data.authenticated) {
             // User is already signed in, hide sign-in and show scrapbook
@@ -355,25 +393,34 @@ signInForm.addEventListener('submit', async (e) => {
         console.log('[SIGNIN] Sign in response data:', data);
 
         if (data.success) {
-            console.log('[SIGNIN] Sign in successful, checking cookie...');
+            console.log('[SIGNIN] Sign in successful, checking authentication method...');
+            
+            // Store JWT token if provided (for mobile/browsers blocking cookies)
+            if (data.token) {
+                authToken = data.token;
+                localStorage.setItem('authToken', authToken);
+                console.log('[SIGNIN] JWT token stored in localStorage');
+            }
             
             // Add a small delay to ensure cookie is set
             await new Promise(resolve => setTimeout(resolve, 100));
             
             // Verify we can make authenticated requests
             try {
-                const testResponse = await fetch(`${API_BASE_URL}/auth/status`, {
-                    credentials: 'include'
-                });
+                const testResponse = await authenticatedFetch(`${API_BASE_URL}/auth/status`);
                 const testData = await testResponse.json();
                 console.log('[SIGNIN] Auth status check:', testData);
+                console.log('[SIGNIN] Auth method:', testData.authMethod || 'unknown');
                 
                 if (!testData.authenticated) {
-                    console.error('[SIGNIN] Cookie not being sent! Browser may be blocking cookies.');
+                    console.error('[SIGNIN] Authentication failed! Neither cookies nor JWT working.');
                     hideLoadingScreen();
-                    showError(signInError, 'Login issue: Cookies are being blocked. Try enabling cookies or use a different browser. (Safari may require "Prevent Cross-Site Tracking" to be disabled)');
+                    showError(signInError, 'Login issue: Authentication failed. Please try again or contact support.');
                     return false;
                 }
+                
+                // Success!
+                console.log(`[SIGNIN] Authenticated successfully via ${testData.authMethod}`);
             } catch (testError) {
                 console.error('[SIGNIN] Auth status check failed:', testError);
                 // Continue anyway, might work
@@ -440,11 +487,15 @@ exitScrapbookBtn.addEventListener('click', async () => {
             signInContainer.classList.remove('sign-in-hidden');
             signInContainer.classList.add('sign-in-visible');
             
-            // Sign out on backend
-            fetch(`${API_BASE_URL}/auth/signout`, {
-                method: 'POST',
-                credentials: 'include'
+            // Sign out on backend and clear token
+            authenticatedFetch(`${API_BASE_URL}/auth/signout`, {
+                method: 'POST'
             });
+            
+            // Clear JWT token from localStorage
+            authToken = null;
+            localStorage.removeItem('authToken');
+            console.log('[SIGNOUT] Cleared authentication token');
         }, 800);
     }
 });
@@ -452,15 +503,17 @@ exitScrapbookBtn.addEventListener('click', async () => {
 // Load scrapbook entries from API
 async function loadScrapbookEntries() {
     try {
-        const response = await fetch(`${API_BASE_URL}/scrapbook/entries`, {
-            credentials: 'include'
-        });
+        const response = await authenticatedFetch(`${API_BASE_URL}/scrapbook/entries`);
 
         console.log('Load entries response status:', response.status);
 
         if (response.status === 401) {
             // Not authenticated, show sign-in form again
             console.log('Not authenticated (401), showing sign-in form');
+            // Clear token if it's invalid
+            authToken = null;
+            localStorage.removeItem('authToken');
+            
             scrapbookContainer.classList.remove('scrapbook-visible');
             scrapbookContainer.classList.add('scrapbook-hidden');
             setTimeout(() => {
@@ -551,9 +604,8 @@ async function deleteEntry(entryId) {
         showLoadingScreen();
         
         try {
-            const response = await fetch(`${API_BASE_URL}/scrapbook/entries/${entryId}`, {
-                method: 'DELETE',
-                credentials: 'include'
+            const response = await authenticatedFetch(`${API_BASE_URL}/scrapbook/entries/${entryId}`, {
+                method: 'DELETE'
             });
 
             const data = await response.json();
@@ -608,9 +660,7 @@ async function editEntry(entryId) {
     
     try {
         // Fetch the entry data
-        const response = await fetch(`${API_BASE_URL}/scrapbook/entries/${entryId}`, {
-            credentials: 'include'
-        });
+        const response = await authenticatedFetch(`${API_BASE_URL}/scrapbook/entries/${entryId}`);
         
         if (!response.ok) {
             alert('Error loading entry for editing');
@@ -785,12 +835,20 @@ if (addEntryForm) {
                     : `${API_BASE_URL}/scrapbook/entries`;
                 const method = formMode === 'edit' ? 'PUT' : 'POST';
 
-                const response = await fetch(url, {
+                const fetchOptions = {
                     method: method,
                     credentials: 'include',
                     body: formData
-                    // Don't set Content-Type header - browser will set it with boundary for multipart/form-data
-                });
+                };
+                
+                // Add Authorization header if we have a token (for mobile)
+                if (authToken) {
+                    fetchOptions.headers = {
+                        'Authorization': `Bearer ${authToken}`
+                    };
+                }
+                
+                const response = await fetch(url, fetchOptions);
 
                 if (!response.ok) {
                     const errorText = await response.text();
